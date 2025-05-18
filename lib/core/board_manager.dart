@@ -1,4 +1,4 @@
-class FileManager {
+class BoardManager {
   // В памяти храним 9 мини-полей, каждое — список из 9 символов ('X','O','-')
   static final List<List<String>> _boards =
       List.generate(9, (_) => List.filled(9, '-'));
