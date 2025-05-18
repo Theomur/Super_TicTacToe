@@ -19,4 +19,8 @@ class BoardManager {
       _boards[i] = List.filled(9, '-');
     }
   }
+
+  static Future<List<List<String>>> getAllBoards() async {
+    return _boards.map((e) => List<String>.from(e)).toList();
+  }
 }

@@ -1,7 +1,4 @@
 // ignore_for_file: use_build_context_synchronously
-
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:super_tictactoe/presentation/widgets/mini_board_widget.dart';
 import 'package:super_tictactoe/presentation/widgets/winner_popup_widget.dart';
@@ -12,7 +9,6 @@ import 'package:super_tictactoe/core/game_logic.dart';
 class GamePage extends StatefulWidget {
   const GamePage({super.key});
   @override
-  // ignore: library_private_types_in_public_api
   _GamePageState createState() => _GamePageState();
 }
 
@@ -49,7 +45,6 @@ class _GamePageState extends State<GamePage> {
     });
   }
 
-  // Проверка победителя в большой игре по winners (9 элементов)
   String _checkBigWinner() {
     return GameLogic.checkWinner(winners);
   }
@@ -78,22 +73,22 @@ class _GamePageState extends State<GamePage> {
   }
 
   Future<void> handlePlayerMove(int boardIndex, int cellIndex) async {
-    // Игрок ходит
+    // Ход игрока
     setState(() {
       boards[boardIndex][cellIndex] = 'X';
       winners[boardIndex] = GameLogic.checkWinner(boards[boardIndex]);
     });
     await BoardManager.saveBoard(boardIndex, boards[boardIndex]);
 
-    // Проверяем победу в большой игре
+    // Проверка победы в большой игре
     bigWinner = _checkBigWinner();
     if (bigWinner != '-') {
       showBigWinnerDialog(
           context: context, winner: bigWinner, onReset: _resetGame);
-      return; // Останавливаем дальнейшие ходы
+      return;
     }
 
-    // Определяем следующее активное мини-поле
+    // Определение следующего активного поля для бота
     int nextActive = cellIndex;
     bool isNextBoardWon = winners[nextActive] != '-';
     bool isNextBoardFull = !boards[nextActive].contains('-');
@@ -103,50 +98,41 @@ class _GamePageState extends State<GamePage> {
     activeBoard = nextActive >= 0 ? nextActive : null;
     setState(() {});
 
-    // Ход компьютера
-    int compBoard = -1;
-    if (activeBoard != null &&
-        winners[activeBoard!] == '-' &&
-        boards[activeBoard!].contains('-')) {
-      compBoard = activeBoard!;
-    } else {
-      List<int> possibleBoards = [];
-      for (int i = 0; i < 9; i++) {
-        if (winners[i] == '-' && boards[i].contains('-')) {
-          possibleBoards.add(i);
-        }
-      }
-      if (possibleBoards.isNotEmpty) {
-        compBoard = possibleBoards[Random().nextInt(possibleBoards.length)];
-      }
-    }
-    if (compBoard >= 0) {
-      int compCell = GameLogic.getRandomMove(boards[compBoard]);
-      if (compCell >= 0) {
-        setState(() {
-          boards[compBoard][compCell] = 'O';
-          winners[compBoard] = GameLogic.checkWinner(boards[compBoard]);
-        });
-        await BoardManager.saveBoard(compBoard, boards[compBoard]);
+    // Ход бота
+    int compMove = GameLogic.robotMove(
+      allBoards: boards,
+      winners: winners,
+      playerSymbol: 'O',
+      activeBoard: activeBoard,
+    );
 
-        // Проверяем победу в большой игре после хода компьютера
-        bigWinner = _checkBigWinner();
-        if (bigWinner != '-') {
-          showBigWinnerDialog(
-              context: context, winner: bigWinner, onReset: _resetGame);
-          return;
-        }
+    if (compMove != -1) {
+      int boardIdx = compMove ~/ 9;
+      int cellIdx = compMove % 9;
 
-        // Обновляем активное поле
-        nextActive = compCell;
-        isNextBoardWon = winners[nextActive] != '-';
-        isNextBoardFull = !boards[nextActive].contains('-');
-        if (isNextBoardWon || isNextBoardFull) {
-          nextActive = -1;
-        }
-        activeBoard = nextActive >= 0 ? nextActive : null;
-        setState(() {});
+      setState(() {
+        boards[boardIdx][cellIdx] = 'O';
+        winners[boardIdx] = GameLogic.checkWinner(boards[boardIdx]);
+      });
+      await BoardManager.saveBoard(boardIdx, boards[boardIdx]);
+
+      // Проверка победы после хода бота
+      bigWinner = _checkBigWinner();
+      if (bigWinner != '-') {
+        showBigWinnerDialog(
+            context: context, winner: bigWinner, onReset: _resetGame);
+        return;
       }
+
+      // Обновление активного поля для следующего хода игрока
+      nextActive = cellIdx;
+      isNextBoardWon = winners[nextActive] != '-';
+      isNextBoardFull = !boards[nextActive].contains('-');
+      if (isNextBoardWon || isNextBoardFull) {
+        nextActive = -1;
+      }
+      activeBoard = nextActive >= 0 ? nextActive : null;
+      setState(() {});
     }
   }
 
